@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SWARCH</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+
+    <div class="container">
+        <h1>Gestión de Productos</h1>
+        
+        <!-- Botón para cambiar entre Crear y Modificar -->
+        <div class="btn-container">
+            <button class="btn active" id="btn-create" onclick="showCreate()">Crear Producto</button>
+            <button class="btn" id="btn-modify" onclick="showModify()">Modificar Registro</button>
+        </div>
+
+        <!-- Sección de Crear Producto -->
+        <section id="create-section">
+            <h2>Crear Producto</h2>
+            <form id="createForm">
+                <label for="name">Nombre:</label>
+                <input type="text" id="name" name="name" required>
+
+                <label for="description">Descripción:</label>
+                <textarea id="description" name="description"></textarea>
+
+                <button type="button" onclick="createProduct()">Crear</button>
+            </form>
+        </section>
+
+        <!-- Sección de Modificar Producto -->
+        <section id="modify-section" style="display: none;">
+            <h2>Lista de Productos</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Descripción</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="productTable">
+                    <!-- Productos dinámicos aquí -->
+                </tbody>
+            </table>
+
+            <!-- Formulario para Editar Producto -->
+            <h2>Actualizar Producto</h2>
+            <form id="updateForm">
+                <label for="update_id">ID (No modificable):</label>
+                <input type="text" id="update_id" readonly>
+
+                <label for="update_name">Nuevo Nombre:</label>
+                <input type="text" id="update_name" required>
+
+                <label for="update_description">Nueva Descripción:</label>
+                <textarea id="update_description"></textarea>
+
+                <button type="button" onclick="updateProduct()">Actualizar</button>
+            </form>
+        </section>
+    </div>
+
+    <script>
+        // Función para alternar entre secciones
+        function showCreate() {
+            document.getElementById("create-section").style.display = "block";
+            document.getElementById("modify-section").style.display = "none";
+            document.getElementById("btn-create").classList.add("active");
+            document.getElementById("btn-modify").classList.remove("active");
+        }
+
+        function showModify() {
+            document.getElementById("create-section").style.display = "none";
+            document.getElementById("modify-section").style.display = "block";
+            document.getElementById("btn-create").classList.remove("active");
+            document.getElementById("btn-modify").classList.add("active");
+            loadProducts();
+        }
+
+        // Obtener productos
+        function loadProducts() {
+            fetch('/products')
+            .then(response => response.json())
+            .then(data => {
+                const productTable = document.getElementById("productTable");
+                productTable.innerHTML = ""; 
+
+                data.forEach(product => {
+                    const row = `<tr onclick="highlightRow(this)">
+                        <td>${product.id}</td>
+                        <td>${product.name}</td>
+                        <td>${product.description}</td>
+                        <td>
+                            <button onclick="editProduct(${product.id}, '${product.name}', '${product.description}')">Editar</button>
+                        </td>
+                    </tr>`;
+                    productTable.innerHTML += row;
+                });
+            })
+            .catch(error => console.error("Error al cargar los productos:", error));
+        }
+
+        // Crear producto
+        function createProduct() {
+            const name = document.getElementById("name").value;
+            const description = document.getElementById("description").value;
+
+            fetch('/products', {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: name, description: description })
+            })
+            .then(response => response.json())
+            .then(() => {
+                alert("Producto creado con éxito");
+                document.getElementById("createForm").reset();
+            })
+            .catch(error => console.error("Error al crear producto:", error));
+        }
+
+        // Editar producto
+        function editProduct(id, name, description) {
+            document.getElementById("update_id").value = id;
+            document.getElementById("update_name").value = name;
+            document.getElementById("update_description").value = description;
+        }
+
+        // Actualizar producto
+        function updateProduct() {
+            const productId = document.getElementById("update_id").value;
+            const name = document.getElementById("update_name").value;
+            const description = document.getElementById("update_description").value;
+
+            fetch(`/products/${productId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: name, description: description })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                loadProducts();
+            })
+            .catch(error => console.error("Error al actualizar producto:", error));
+        }
+
+        // Resaltar fila seleccionada
+        function highlightRow(row) {
+            let rows = document.querySelectorAll("tr");
+            rows.forEach(r => r.classList.remove("selected"));
+            row.classList.add("selected");
+        }
+    </script>
+
+</body>
+</html>
+
